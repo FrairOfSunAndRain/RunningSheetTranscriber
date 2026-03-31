@@ -24,7 +24,7 @@ jobs:
         run: npm install
 
       - name: Build Windows installer
-        run: npm run build:win
+        run: npm run build:win -- --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
@@ -54,7 +54,7 @@ jobs:
         run: npm install
 
       - name: Build Linux packages
-        run: npm run build:linux
+        run: npm run build:linux -- --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
