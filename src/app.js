@@ -288,6 +288,9 @@ const App = (() => {
         if (settings && settings.hotkeys) {
             AudioPlayer.setHotkeys(settings.hotkeys);
         }
+        if (settings && settings.timeAdjustHotkeys) {
+            TranscribePage.setTimeAdjustHotkeys(settings.timeAdjustHotkeys);
+        }
     }
 
     /**
@@ -302,11 +305,12 @@ const App = (() => {
     /**
      * Show settings modal
      */
-    async function showSettings() {
+    async function showSettings(activeTab = 'general') {
         const hotkeys = AudioPlayer.getHotkeys();
         const retentionDays = await Storage.getRetentionDays();
         const settings = await window.api.settings.get();
         const currentLang = settings?.spellCheckerLanguage || 'en-AU';
+        const timeHotkeys = settings?.timeAdjustHotkeys || { add: 'PageUp', subtract: 'PageDown' };
 
         const spellLanguages = [
             { code: 'en-AU', label: 'English (Australia)' },
@@ -339,46 +343,84 @@ const App = (() => {
         Modal.show({
             title: 'Settings',
             body: `
-                <div style="margin-bottom:var(--space-lg);">
-                    <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
-                        Storage Directory
-                    </h3>
-                    <div style="display:flex; align-items:center; gap:8px; padding:8px 0;">
-                        <span id="settings-storage-path" style="flex:1; font-size:var(--font-size-sm); color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${Storage.getRootDir() || 'Not set'}</span>
-                        <button class="btn btn-ghost btn-sm" id="settings-change-dir" style="flex-shrink:0;">Change</button>
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-tab="general">General</button>
+                    <button class="settings-tab" data-tab="hotkeys">Hotkeys</button>
+                </div>
+
+                <!-- General Tab -->
+                <div class="settings-tab-panel" id="settings-panel-general">
+                    <div style="margin-bottom:var(--space-lg);">
+                        <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
+                            Storage Directory
+                        </h3>
+                        <div style="display:flex; align-items:center; gap:8px; padding:8px 0;">
+                            <span id="settings-storage-path" style="flex:1; font-size:var(--font-size-sm); color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${Storage.getRootDir() || 'Not set'}</span>
+                            <button class="btn btn-ghost btn-sm" id="settings-change-dir" style="flex-shrink:0;">Change</button>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:var(--space-lg);">
+                        <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
+                            Spell Check Language
+                        </h3>
+                        <div style="display:flex; align-items:center; gap:8px; padding:8px 0;">
+                            <select id="settings-spell-language"
+                                    style="flex:1; padding:6px 10px; background:var(--bg-tertiary); border:1px solid var(--border);
+                                           border-radius:var(--radius-sm); color:var(--text-primary); font-size:var(--font-size-sm);">
+                                ${spellLanguages.map(l => `<option value="${l.code}" ${l.code === currentLang ? 'selected' : ''}>${l.label}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:var(--space-lg);">
+                        <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
+                            Completed Sheets
+                        </h3>
+                        <div style="display:flex; align-items:center; gap:8px; padding:8px 0;">
+                            <span style="font-size:var(--font-size-sm); color:var(--text-secondary); flex:1;">Auto-delete after</span>
+                            <input type="number" id="settings-retention-days" min="1" max="365" value="${retentionDays}"
+                                   style="width:64px; padding:4px 8px; background:var(--bg-tertiary); border:1px solid var(--border);
+                                          border-radius:var(--radius-sm); color:var(--text-primary); font-size:var(--font-size-sm); text-align:center;">
+                            <span style="font-size:var(--font-size-sm); color:var(--text-secondary);">days after completion</span>
+                        </div>
                     </div>
                 </div>
-                <div style="margin-bottom:var(--space-lg);">
-                    <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
-                        Spell Check Language
-                    </h3>
-                    <div style="display:flex; align-items:center; gap:8px; padding:8px 0;">
-                        <select id="settings-spell-language"
-                                style="flex:1; padding:6px 10px; background:var(--bg-tertiary); border:1px solid var(--border);
-                                       border-radius:var(--radius-sm); color:var(--text-primary); font-size:var(--font-size-sm);">
-                            ${spellLanguages.map(l => `<option value="${l.code}" ${l.code === currentLang ? 'selected' : ''}>${l.label}</option>`).join('')}
-                        </select>
+
+                <!-- Hotkeys Tab -->
+                <div class="settings-tab-panel hidden" id="settings-panel-hotkeys">
+                    <div style="margin-bottom:var(--space-lg);">
+                        <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
+                            Audio Hotkeys
+                        </h3>
+                        <p style="font-size:var(--font-size-xs); color:var(--text-tertiary); margin-bottom:var(--space-sm);">
+                            Click a key button, then press the new key to assign it.
+                        </p>
+                        ${hotkeyHtml}
                     </div>
-                </div>
-                <div style="margin-bottom:var(--space-lg);">
-                    <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
-                        Audio Hotkeys
-                    </h3>
-                    <p style="font-size:var(--font-size-xs); color:var(--text-tertiary); margin-bottom:var(--space-sm);">
-                        Click a key button, then press the new key to assign it.
-                    </p>
-                    ${hotkeyHtml}
-                </div>
-                <div style="margin-bottom:var(--space-lg);">
-                    <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
-                        Completed Sheets
-                    </h3>
-                    <div style="display:flex; align-items:center; gap:8px; padding:8px 0;">
-                        <span style="font-size:var(--font-size-sm); color:var(--text-secondary); flex:1;">Auto-delete after</span>
-                        <input type="number" id="settings-retention-days" min="1" max="365" value="${retentionDays}"
-                               style="width:64px; padding:4px 8px; background:var(--bg-tertiary); border:1px solid var(--border);
-                                      border-radius:var(--radius-sm); color:var(--text-primary); font-size:var(--font-size-sm); text-align:center;">
-                        <span style="font-size:var(--font-size-sm); color:var(--text-secondary);">days after completion</span>
+                    <div style="margin-bottom:var(--space-lg);">
+                        <h3 style="font-size:var(--font-size-sm); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--space-sm);">
+                            Time Adjust Hotkeys
+                        </h3>
+                        <p style="font-size:var(--font-size-xs); color:var(--text-tertiary); margin-bottom:var(--space-sm);">
+                            Click a key button, then press the new key to assign it.
+                        </p>
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-light);">
+                            <span style="font-size:var(--font-size-sm);">Add Time</span>
+                            <button class="hotkey-capture-btn" data-action="timeAdjustAdd"
+                                    style="min-width:80px; padding:6px 14px; background:var(--bg-tertiary); border:1px solid var(--border);
+                                           border-radius:var(--radius-sm); color:var(--text-primary); font-family:var(--font-mono);
+                                           font-size:var(--font-size-sm); cursor:pointer; text-align:center; transition: all 0.15s;">
+                                ${timeHotkeys.add}
+                            </button>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-light);">
+                            <span style="font-size:var(--font-size-sm);">Subtract Time</span>
+                            <button class="hotkey-capture-btn" data-action="timeAdjustSubtract"
+                                    style="min-width:80px; padding:6px 14px; background:var(--bg-tertiary); border:1px solid var(--border);
+                                           border-radius:var(--radius-sm); color:var(--text-primary); font-family:var(--font-mono);
+                                           font-size:var(--font-size-sm); cursor:pointer; text-align:center; transition: all 0.15s;">
+                                ${timeHotkeys.subtract}
+                            </button>
+                        </div>
                     </div>
                 </div>
             `,
@@ -387,22 +429,36 @@ const App = (() => {
                     label: 'Reset Defaults',
                     className: 'btn btn-ghost',
                     onClick: () => {
-                        const defaults = {
-                            prevFile: 'F1',
-                            togglePlayPause: 'F2',
-                            stop: 'F3',
-                            nextFile: 'F4',
-                        };
-                        AudioPlayer.setHotkeys(defaults);
-                        saveHotkeySettings();
-                        // Update button labels in the settings modal
-                        document.querySelectorAll('.hotkey-capture-btn').forEach(btn => {
-                            const action = btn.dataset.action;
-                            if (defaults[action]) btn.textContent = defaults[action];
+                        Modal.confirm({
+                            title: 'Reset All Hotkeys',
+                            message: 'This will restore all hotkeys to their default assignments. Any custom assignments will be lost. Continue?',
+                            confirmLabel: 'Reset',
+                            confirmClass: 'btn-danger',
+                            onConfirm: async () => {
+                                const audioDefaults = {
+                                    prevFile: 'F1',
+                                    togglePlayPause: 'F2',
+                                    stop: 'F3',
+                                    nextFile: 'F4',
+                                };
+                                const timeDefaults = { add: 'PageUp', subtract: 'PageDown' };
+
+                                AudioPlayer.setHotkeys(audioDefaults);
+                                saveHotkeySettings();
+
+                                // Reset time adjust hotkeys
+                                const settings = await window.api.settings.get() || {};
+                                settings.timeAdjustHotkeys = timeDefaults;
+                                await window.api.settings.set(settings);
+                                TranscribePage.setTimeAdjustHotkeys(timeDefaults);
+
+                                AudioPlayer.showPlayerBar();
+                                showToast('Hotkeys reset to defaults', 'info');
+
+                                // Reopen settings to show the restored values
+                                showSettings('hotkeys');
+                            },
                         });
-                        // Refresh media player bar to show updated hotkeys
-                        AudioPlayer.showPlayerBar();
-                        showToast('Hotkeys reset to defaults', 'info');
                     },
                 },
                 {
@@ -412,6 +468,28 @@ const App = (() => {
                 },
             ],
         });
+
+        // Bind tab switching
+        document.querySelectorAll('.settings-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.settings-tab-panel').forEach(p => p.classList.add('hidden'));
+                tab.classList.add('active');
+                document.getElementById(`settings-panel-${tab.dataset.tab}`)?.classList.remove('hidden');
+                // Show Reset Defaults only on Hotkeys tab
+                const resetBtn = document.getElementById('modal-btn-0');
+                if (resetBtn) resetBtn.style.display = tab.dataset.tab === 'hotkeys' ? '' : 'none';
+            });
+        });
+
+        // Activate the requested tab
+        if (activeTab !== 'general') {
+            document.querySelector(`.settings-tab[data-tab="${activeTab}"]`)?.click();
+        } else {
+            // Hide Reset Defaults on initial General tab load
+            const resetBtn = document.getElementById('modal-btn-0');
+            if (resetBtn) resetBtn.style.display = 'none';
+        }
 
         // Bind storage directory change button
         document.getElementById('settings-change-dir')?.addEventListener('click', async () => {
@@ -443,12 +521,17 @@ const App = (() => {
                     btn.style.borderColor = '';
                     btn.style.boxShadow = '';
 
-                    // Update the hotkey map
-                    const update = {};
-                    update[action] = newKey;
-                    AudioPlayer.setHotkeys(update);
-                    saveHotkeySettings();
-                    AudioPlayer.showPlayerBar();
+                    if (action === 'timeAdjustAdd' || action === 'timeAdjustSubtract') {
+                        // Save time adjust hotkeys
+                        saveTimeAdjustHotkeySetting(action, newKey);
+                    } else {
+                        // Update audio hotkey map
+                        const update = {};
+                        update[action] = newKey;
+                        AudioPlayer.setHotkeys(update);
+                        saveHotkeySettings();
+                        AudioPlayer.showPlayerBar();
+                    }
 
                     document.removeEventListener('keydown', onKey, true);
                 }
@@ -483,6 +566,17 @@ const App = (() => {
         const settings = await window.api.settings.get() || {};
         settings.hotkeys = AudioPlayer.getHotkeys();
         await window.api.settings.set(settings);
+    }
+
+    async function saveTimeAdjustHotkeySetting(action, key) {
+        const settings = await window.api.settings.get() || {};
+        if (!settings.timeAdjustHotkeys) {
+            settings.timeAdjustHotkeys = { add: 'PageUp', subtract: 'PageDown' };
+        }
+        if (action === 'timeAdjustAdd') settings.timeAdjustHotkeys.add = key;
+        if (action === 'timeAdjustSubtract') settings.timeAdjustHotkeys.subtract = key;
+        await window.api.settings.set(settings);
+        TranscribePage.setTimeAdjustHotkeys(settings.timeAdjustHotkeys);
     }
 
     /**
@@ -532,17 +626,8 @@ const App = (() => {
                         Version ${version}
                     </p>
                     <p style="font-size:var(--font-size-sm); color:var(--text-secondary); line-height:1.6;">
-                        An offline desktop tool for creating match incident<br>running sheets from audio recordings.
+                        Created for football referee coaches. A desktop tool for creating match running sheets from audio recordings.
                     </p>
-                    <div style="margin-top:var(--space-md);">
-                        <button id="btn-check-updates" class="btn btn-secondary btn-sm">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle">
-                                <polyline points="23 4 23 10 17 10"/>
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                            </svg>
-                            Check for Updates
-                        </button>
-                    </div>
                     <div style="margin-top:var(--space-lg); padding-top:var(--space-md); border-top:1px solid var(--border);">
                         <p style="font-size:var(--font-size-sm); color:var(--text-tertiary);">
                             Published by <span style="color:var(--accent); font-weight:600;">JarlOfSunAndRain</span>
@@ -562,12 +647,74 @@ const App = (() => {
 
         // Bind buttons after modal renders
         setTimeout(() => {
-            document.getElementById('btn-check-updates')?.addEventListener('click', () => checkForUpdates(true));
             document.getElementById('about-github-link')?.addEventListener('click', (e) => {
                 e.preventDefault();
                 window.api.app.openExternal('https://github.com/JarlOfSunAndRain/RunningSheetTranscriber');
             });
         }, 50);
+    }
+
+    /**
+     * Show Version History dialog
+     */
+    function showVersionHistory() {
+        Modal.show({
+            title: 'Version History',
+            body: `
+                <div style="max-height:480px; overflow-y:auto; padding-right:4px;">
+
+                    <div style="margin-bottom:var(--space-lg);">
+                        <p style="font-size:var(--font-size-sm); font-weight:700; color:var(--text-primary); margin-bottom:4px;">v1.1.0</p>
+                        <ul style="font-size:var(--font-size-sm); color:var(--text-secondary); padding-left:var(--space-md); line-height:1.8; margin:0;">
+                            <li>Fixed the versioning for the app listings in operating systems so it should avoid duplicate entries on the app listings when installing updates.</li>
+                            <li>Added a full version by version patch notes section within the app.</li>
+                            <li>Revised the About splash screen description.</li>
+                            <li>Changed the about button to a drop down menu to include update, version history and update selections.</li>
+                            <li>Added Time adjustment variable options and functionality to the "Time" field in the transcribe module. Also added hotkey assignments for this feature to function.</li>
+                            <li>Removed the "back to manager" button in the transcribe module (redundant).</li>
+                            <li>Revised the settings menu to improve organisation and better place the reset to default buttons in context.</li>
+                        </ul>
+                    </div>
+
+                    <div style="margin-bottom:var(--space-lg);">
+                        <p style="font-size:var(--font-size-sm); font-weight:700; color:var(--text-primary); margin-bottom:4px;">v1.0.2</p>
+                        <ul style="font-size:var(--font-size-sm); color:var(--text-secondary); padding-left:var(--space-md); line-height:1.8; margin:0;">
+                            <li>Linking files in the transcribe module now has auto scroll to the selected file in link file dialog to aid user in linking files quickly.</li>
+                            <li>Clearing a line in the transcribe module now resets the entry to "null" so it will not be listed in the review module. The guide shadow text is also reset after clearing the field.</li>
+                            <li>The review module now includes a validity check to exclude lines of the sheet. KMI's and IOI's will no longer be able to be excluded. Also if excluded lines have KMI or IOI highlighting added they will automatically be included when adding highlighting.</li>
+                            <li>Preview export text in the Publish module has been reduced in scale to more accurately reflect export sizes.</li>
+                        </ul>
+                    </div>
+
+                    <div style="margin-bottom:var(--space-lg);">
+                        <p style="font-size:var(--font-size-sm); font-weight:700; color:var(--text-primary); margin-bottom:4px;">v1.0.1</p>
+                        <ul style="font-size:var(--font-size-sm); color:var(--text-secondary); padding-left:var(--space-md); line-height:1.8; margin:0;">
+                            <li>Spell checker/copy/cut/paste for right click functionality now operates with right click in "note/incident" field for the transcribe and review modules.</li>
+                            <li>Automatic update checker added.</li>
+                            <li>English language selections added to options — Australia, Canada, New Zealand, South Africa, United Kingdom, United States — to assist with spell checker.</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <p style="font-size:var(--font-size-sm); font-weight:700; color:var(--text-primary); margin-bottom:4px;">v1.0.0</p>
+                        <ul style="font-size:var(--font-size-sm); color:var(--text-secondary); padding-left:var(--space-md); line-height:1.8; margin:0;">
+                            <li>Initial release.</li>
+                            <li>Audio playback with F1–F4 hotkeys.</li>
+                            <li>Per-file entry editing (time, comment, tags, highlight).</li>
+                            <li>Review module with filters, bulk actions and statistics.</li>
+                            <li>PDF export.</li>
+                            <li>Snapshot-based undo/redo.</li>
+                            <li>Auto-save and retention management.</li>
+                        </ul>
+                    </div>
+
+                </div>
+            `,
+            width: '520px',
+            buttons: [
+                { label: 'Close', class: 'btn-primary', onClick: () => Modal.hide() },
+            ],
+        });
     }
 
     return {
@@ -582,6 +729,7 @@ const App = (() => {
         showSettings,
         showEditDetails,
         showAbout,
+        showVersionHistory,
         checkForUpdates,
     };
 })();
@@ -600,8 +748,26 @@ document.addEventListener('DOMContentLoaded', () => {
         App.showEditDetails();
     });
 
-    // Bind About button
-    document.getElementById('btn-about')?.addEventListener('click', () => {
+    // Bind About dropdown
+    const aboutBtn = document.getElementById('btn-about');
+    const aboutDropdown = document.getElementById('about-dropdown');
+    aboutBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        aboutDropdown.classList.toggle('open');
+    });
+    document.getElementById('about-menu-about')?.addEventListener('click', () => {
+        aboutDropdown.classList.remove('open');
         App.showAbout();
+    });
+    document.getElementById('about-menu-history')?.addEventListener('click', () => {
+        aboutDropdown.classList.remove('open');
+        App.showVersionHistory();
+    });
+    document.getElementById('about-menu-updates')?.addEventListener('click', () => {
+        aboutDropdown.classList.remove('open');
+        App.checkForUpdates(true);
+    });
+    document.addEventListener('click', () => {
+        aboutDropdown?.classList.remove('open');
     });
 });

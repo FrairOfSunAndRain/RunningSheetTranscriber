@@ -273,7 +273,92 @@
 
 /* Time Column */
 .entry-table .col-time {
-    width: 80px;
+    width: 120px;
+}
+
+.time-cell-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.time-cell-wrapper .entry-time-input {
+    width: 54px;
+    flex-shrink: 0;
+}
+
+.btn-time-adjust {
+    padding: 2px 5px !important;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+.btn-time-adjust:hover {
+    color: var(--accent);
+    background: var(--accent-dim);
+}
+
+/* Time Adjust toolbar control */
+.time-adjust-control {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: 4px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.time-adjust-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.time-adjust-input {
+    width: 48px;
+    padding: 2px 6px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: #facc15;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    text-align: center;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    appearance: none;
+}
+
+.time-adjust-input::-webkit-inner-spin-button,
+.time-adjust-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.time-adjust-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.time-adjust-input.is-set {
+    color: #4ade80;
+}
+
+.btn-time-adjust-set {
+    padding: 2px 8px !important;
+    font-size: var(--font-size-xs) !important;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-primary);
+}
+
+.btn-time-adjust-set:hover {
+    border-color: #4ade80;
+    color: #4ade80;
 }
 
 .entry-time-input {

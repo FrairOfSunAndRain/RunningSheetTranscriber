@@ -8,6 +8,27 @@ const TranscribePage = (() => {
   let audioFiles = [];
   let tagInputInstances = {};
   let autosaveTimer = null;
+  let timeAdjustHotkeys = { add: 'PageUp', subtract: 'PageDown' };
+
+  function setTimeAdjustHotkeys(h) {
+    if (h) timeAdjustHotkeys = { ...timeAdjustHotkeys, ...h };
+    AudioPlayer.setExtraHints([
+      { key: timeAdjustHotkeys.add, label: 'Time +' },
+      { key: timeAdjustHotkeys.subtract, label: 'Time −' },
+    ]);
+    AudioPlayer.showPlayerBar();
+  }
+
+  /**
+   * Adjust only the leading digits of a time string by delta.
+   * e.g. "25.30" + 1 → "26.30", "37+2" − 1 → "36+2", "45" + 5 → "50"
+   */
+  function adjustLeadingDigits(timeValue, delta) {
+    const match = timeValue.match(/^(\d+)(.*)/);
+    if (!match) return timeValue;
+    const newLeading = Math.max(0, parseInt(match[1], 10) + delta);
+    return String(newLeading) + match[2];
+  }
 
   /**
    * Render the transcribe page
@@ -108,12 +129,11 @@ const TranscribePage = (() => {
               </svg>
               Add Entry
             </button>
-            <button class="btn btn-ghost btn-sm" id="btn-back-manager" title="Back to Manager">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Manager
-            </button>
+            <div class="time-adjust-control" title="Enter an increment and click Set, then use ${timeAdjustHotkeys.add} / ${timeAdjustHotkeys.subtract} on a focused time field to adjust">
+              <span class="time-adjust-label">Time Adj.</span>
+              <input type="number" id="time-adjust-increment" class="time-adjust-input is-set" value="45" min="1" max="999">
+              <button class="btn btn-ghost btn-sm btn-time-adjust-set" id="btn-time-adjust-set">Set</button>
+            </div>
           </div>
         </div>
 
@@ -124,6 +144,10 @@ const TranscribePage = (() => {
     `;
 
     // Show player bar at bottom
+    AudioPlayer.setExtraHints([
+      { key: timeAdjustHotkeys.add, label: 'Time +' },
+      { key: timeAdjustHotkeys.subtract, label: 'Time −' },
+    ]);
     AudioPlayer.showPlayerBar();
 
     // Bind events
@@ -500,9 +524,14 @@ const TranscribePage = (() => {
       App.showToast(`${added} audio file${added !== 1 ? 's' : ''} imported`, 'success');
     });
 
-    // Back to manager
-    document.getElementById('btn-back-manager')?.addEventListener('click', () => {
-      App.navigateTo('manager');
+    // Time Adjust — turn yellow on input change, green on Set
+    const timeAdjInput = document.getElementById('time-adjust-increment');
+    const timeAdjSetBtn = document.getElementById('btn-time-adjust-set');
+    timeAdjInput?.addEventListener('input', () => {
+      timeAdjInput.classList.remove('is-set');
+    });
+    timeAdjSetBtn?.addEventListener('click', () => {
+      timeAdjInput.classList.add('is-set');
     });
 
     // Field changes — time inputs (standard)
@@ -519,6 +548,35 @@ const TranscribePage = (() => {
       });
       input.addEventListener('blur', () => {
         UndoRedo.commit(entries);
+      });
+
+      // Time adjust hotkeys
+      input.addEventListener('keydown', (e) => {
+        if (e.key !== timeAdjustHotkeys.add && e.key !== timeAdjustHotkeys.subtract) return;
+        e.preventDefault();
+
+        const adjInput = document.getElementById('time-adjust-increment');
+        if (!adjInput?.classList.contains('is-set')) return; // not confirmed via Set
+
+        const entry = entries.find(en => en.id === input.dataset.entryId);
+        if (!entry) return;
+
+        if (!/^\d/.test(entry.time || '')) {
+          Modal.show({
+            title: 'Time Adjustment',
+            body: '<p style="color:var(--text-secondary);">Unable to perform time adjustment — numerical figures need to be at the start of the field entry to have effect.</p>',
+            buttons: [{ label: 'OK', class: 'btn-primary', onClick: () => Modal.hide() }],
+          });
+          return;
+        }
+
+        const increment = Math.max(1, parseInt(adjInput.value || '1', 10));
+        const dir = e.key === timeAdjustHotkeys.add ? 1 : -1;
+        UndoRedo.snapshot(entries, 'time adjust');
+        entry.time = adjustLeadingDigits(entry.time, dir * increment);
+        UndoRedo.commit(entries);
+        input.value = entry.time;
+        scheduleAutosave();
       });
     });
 
@@ -1184,5 +1242,5 @@ const TranscribePage = (() => {
     });
   }
 
-  return { render, flushSave };
+  return { render, flushSave, setTimeAdjustHotkeys };
 })();

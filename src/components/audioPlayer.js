@@ -71,6 +71,9 @@ const AudioPlayer = (() => {
         nextFile: 'F4',
     };
 
+    // Extra hotkey hints rendered at the end of the player bar
+    let extraHints = [];  // [{ key, label }, ...]
+
     /**
      * Handle global hotkeys (uses the configurable map)
      */
@@ -91,6 +94,10 @@ const AudioPlayer = (() => {
 
     function getHotkeys() {
         return { ...hotkeyMap };
+    }
+
+    function setExtraHints(hints) {
+        extraHints = hints || [];
     }
 
     /**
@@ -279,6 +286,7 @@ const AudioPlayer = (() => {
           <kbd>${hotkeyMap.togglePlayPause}</kbd> Play
           <kbd>${hotkeyMap.stop}</kbd> Stop
           <kbd>${hotkeyMap.nextFile}</kbd> Next
+          ${extraHints.length ? '<span style="opacity:0.3;margin:0 4px">|</span>' : ''}${extraHints.map(h => `<kbd>${h.key}</kbd> ${h.label}`).join(' ')}
         </div>
       </div>
     `;
@@ -409,5 +417,6 @@ const AudioPlayer = (() => {
         getFileName,
         setHotkeys,
         getHotkeys,
+        setExtraHints,
     };
 })();
