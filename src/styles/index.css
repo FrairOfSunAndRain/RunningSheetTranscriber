@@ -614,6 +614,65 @@ input[type="date"].input::-webkit-calendar-picker-indicator:hover {
   50% { opacity: 0.5; }
 }
 
+/* ─── Settings Tabs ──────────────────────────────────────── */
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-lg);
+}
+
+.settings-tab {
+  padding: 8px 18px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.settings-tab:hover {
+  color: var(--text-primary);
+}
+
+.settings-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.settings-tab-panel.hidden {
+  display: none;
+}
+
+/* ─── About Dropdown Menu ────────────────────────────────── */
+.about-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.about-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 180px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+  padding: 4px;
+}
+
+.about-dropdown.open {
+  display: block;
+}
+
 /* ─── Row Dropdown Menu ──────────────────────────────────── */
 .row-menu-wrapper {
   position: relative;
