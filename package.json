@@ -1,6 +1,6 @@
 {
   "name": "runningsheet-transcriber",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Offline desktop tool for creating match incident running sheets from audio recordings",
   "main": "main.js",
   "scripts": {
@@ -74,8 +74,7 @@
       "license": "LICENSE",
       "guid": "a3f2c1d4-7e6b-4a9f-8c3d-2b5e1f0d9a87",
       "uninstallDisplayName": "Running Sheet Transcriber",
-      "deleteAppDataOnUninstall": false,
-      "include": "build/installer.nsh"
+      "deleteAppDataOnUninstall": false
     }
   },
   "devDependencies": {
