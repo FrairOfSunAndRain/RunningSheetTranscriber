@@ -9,6 +9,7 @@ const TranscribePage = (() => {
   let tagInputInstances = {};
   let autosaveTimer = null;
   let timeAdjustHotkeys = { add: 'PageUp', subtract: 'PageDown' };
+  let unresolvedFiles = []; // [{ originalPath, fileName }]
 
   function setTimeAdjustHotkeys(h) {
     if (h) timeAdjustHotkeys = { ...timeAdjustHotkeys, ...h };
@@ -52,6 +53,7 @@ const TranscribePage = (() => {
     entries = sheet.entries || [];
     tags = sheet.tags || [];
     audioFiles = sheet.audioFiles || [];
+    unresolvedFiles = []; // reset on each sheet open
 
     // Initialize audio player if not already
     if (!AudioPlayer.getFiles().length || AudioPlayer.getFiles() !== audioFiles) {
@@ -114,6 +116,7 @@ const TranscribePage = (() => {
         <div class="transcribe-header">
           <h2>Transcribe</h2>
           <div class="transcribe-actions">
+            ${unresolvedFiles.length > 0 ? `<button class="btn btn-sm btn-resolve-files" id="btn-resolve-files">Resolve ${unresolvedFiles.length} Unreferenced File${unresolvedFiles.length !== 1 ? 's' : ''}</button>` : ''}
             <button class="btn btn-secondary btn-sm" id="btn-import-audio">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 18V5l12-2v13"/>
@@ -176,10 +179,11 @@ const TranscribePage = (() => {
     }
 
     let rows = '';
-    // Count total visible columns (drag + file + time + comment + highlight + tools)
-    const totalCols = 6;
+    // Count total visible columns (drag + linenum + file + time + comment + highlight + tools)
+    const totalCols = 7;
 
     entries.forEach((entry, index) => {
+
       // Period Break row — special rendering
       if (entry.type === 'break') {
         rows += `
@@ -255,6 +259,16 @@ const TranscribePage = (() => {
               </svg>
             </div>
           </td>
+          <td class="col-linenum">${(() => {
+            if (!entry.linkedFiles || entry.linkedFiles.length === 0) return '';
+            const nums = entry.linkedFiles
+              .map(f => audioFiles.indexOf(f))
+              .filter(i => i !== -1)
+              .map(i => i + 1);
+            return nums.length > 0
+              ? nums.map(n => `<span class="entry-linenum">${n}</span>`).join('')
+              : '';
+          })()}</td>
           <td class="col-file">
             <div class="linked-files-list">
               ${fileListHtml}
@@ -304,6 +318,7 @@ const TranscribePage = (() => {
         <thead>
           <tr>
             <th class="col-drag"></th>
+            <th class="col-linenum">#</th>
             <th class="col-file">File</th>
             <th class="col-time">Time</th>
             <th class="col-comment">Incident / Comment</th>
@@ -490,6 +505,9 @@ const TranscribePage = (() => {
    * Bind transcribe page events
    */
   function bindTranscribeEvents() {
+    // Resolve unreferenced files button
+    document.getElementById('btn-resolve-files')?.addEventListener('click', showResolveModal);
+
     // Add entry button
     document.getElementById('btn-add-entry')?.addEventListener('click', addManualEntry);
 
@@ -1242,5 +1260,121 @@ const TranscribePage = (() => {
     });
   }
 
-  return { render, flushSave, setTimeAdjustHotkeys };
+  /**
+   * Called by app.js after opening a sheet — sets broken paths, re-renders to show
+   * the resolve button, then immediately shows the resolve modal.
+   */
+  function promptResolveFiles(brokenPaths) {
+    unresolvedFiles = brokenPaths.map(p => ({
+      originalPath: p,
+      fileName: AudioPlayer.getFileName(p),
+    }));
+    renderPage(document.getElementById('page-container'));
+    showResolveModal();
+  }
+
+  /**
+   * Show the resolve modal listing unresolved files with options to search or ignore.
+   */
+  function showResolveModal() {
+    const count = unresolvedFiles.length;
+    const fileListHtml = unresolvedFiles
+      .map(f => `<li class="resolve-file-item">${f.fileName}</li>`)
+      .join('');
+
+    Modal.show({
+      title: 'Unreferenced Audio Files',
+      width: '500px',
+      body: `
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-md); line-height: 1.6;">
+          ${count} audio file${count !== 1 ? 's' : ''} could not be found at their stored location${count !== 1 ? 's' : ''}.
+          This can happen when moving between machines or when the audio folder has moved.
+          Select the folder containing these files to re-link them.
+        </p>
+        <ul class="resolve-file-list">
+          ${fileListHtml}
+        </ul>
+      `,
+      buttons: [
+        {
+          label: 'Search for Folder',
+          class: 'btn-primary',
+          onClick: async () => {
+            Modal.hide();
+            await resolveFromFolder();
+          },
+        },
+        {
+          label: 'Ignore',
+          class: 'btn-secondary',
+          onClick: () => Modal.hide(),
+        },
+      ],
+    });
+  }
+
+  /**
+   * Open a folder picker and remap any broken paths whose filename is found in that folder.
+   */
+  async function resolveFromFolder() {
+    const folder = await window.api.dialog.selectDirectory('Locate Audio Folder');
+    if (!folder) return;
+
+    const scannedFiles = await window.api.audio.scanFolder(folder);
+    if (scannedFiles.length === 0) {
+      App.showToast('No audio files found in that folder', 'error');
+      showResolveModal();
+      return;
+    }
+
+    // Build filename (lowercase) → new path map
+    const nameToNewPath = {};
+    scannedFiles.forEach(f => {
+      nameToNewPath[f.name.toLowerCase()] = f.path;
+    });
+
+    const sheetId = App.getActiveSheetId();
+    let resolvedCount = 0;
+    const stillBroken = [];
+
+    unresolvedFiles.forEach(({ originalPath, fileName }) => {
+      const newPath = nameToNewPath[fileName.toLowerCase()];
+      if (newPath) {
+        // Update audioFiles array in place
+        const idx = audioFiles.indexOf(originalPath);
+        if (idx !== -1) audioFiles[idx] = newPath;
+
+        // Update linkedFiles on every entry that references the old path
+        entries.forEach(entry => {
+          if (!entry.linkedFiles) return;
+          const li = entry.linkedFiles.indexOf(originalPath);
+          if (li !== -1) entry.linkedFiles[li] = newPath;
+        });
+
+        resolvedCount++;
+      } else {
+        stillBroken.push({ originalPath, fileName });
+      }
+    });
+
+    if (resolvedCount > 0) {
+      await Storage.saveAudioReferences(sheetId, audioFiles);
+      await Storage.saveEntries(sheetId, entries);
+      AudioPlayer.loadFiles(audioFiles);
+      await App.refreshActiveSheet();
+    }
+
+    unresolvedFiles = stillBroken;
+    renderPage(document.getElementById('page-container'));
+
+    if (resolvedCount > 0) {
+      App.showToast(`${resolvedCount} file${resolvedCount !== 1 ? 's' : ''} re-linked successfully`, 'success');
+    }
+    if (stillBroken.length > 0) {
+      App.showToast(`${stillBroken.length} file${stillBroken.length !== 1 ? 's' : ''} still unresolved`, 'warning');
+      showResolveModal();
+    }
+  }
+
+  return { render, flushSave, setTimeAdjustHotkeys, promptResolveFiles };
 })();

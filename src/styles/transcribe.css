@@ -501,12 +501,68 @@
     padding-left: 10px;
 }
 
+/* Resolve Unreferenced Files Button */
+.btn-resolve-files {
+    background-color: var(--danger);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.btn-resolve-files:hover {
+    background-color: #e05252;
+    color: #fff;
+}
+
+/* Resolve Modal File List */
+.resolve-file-list {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-sm) 0 0;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-secondary);
+}
+
+.resolve-file-item {
+    padding: 6px 12px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.resolve-file-item:last-child {
+    border-bottom: none;
+}
+
 /* Drag Handle Column */
 .entry-table .col-drag {
     width: 28px;
     padding: 0 4px !important;
     text-align: center;
     vertical-align: middle;
+}
+
+/* Line Number Column */
+.entry-table .col-linenum {
+    width: 28px;
+    padding: 0 4px !important;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.entry-linenum {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    user-select: none;
+    line-height: 1.6;
 }
 
 .drag-handle {

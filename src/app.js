@@ -100,8 +100,20 @@ const App = (() => {
             // Update status
             updateStatus();
 
+            // Check for broken audio paths
+            const broken = [];
+            for (const filePath of (activeSheet.audioFiles || [])) {
+                const exists = await window.api.fs.exists(filePath);
+                if (!exists) broken.push(filePath);
+            }
+
             // Navigate to transcribe module
             await navigateTo('transcribe');
+
+            // Prompt to resolve any broken audio paths after render
+            if (broken.length > 0) {
+                TranscribePage.promptResolveFiles(broken);
+            }
 
             const label = activeSheet.metadata.homeTeam && activeSheet.metadata.awayTeam
                 ? `${activeSheet.metadata.homeTeam} vs ${activeSheet.metadata.awayTeam}`
@@ -664,9 +676,20 @@ const App = (() => {
                 <div style="max-height:480px; overflow-y:auto; padding-right:4px;">
 
                     <div style="margin-bottom:var(--space-lg);">
+                        <p style="font-size:var(--font-size-sm); font-weight:700; color:var(--text-primary); margin-bottom:4px;">v1.1.1</p>
+                        <ul style="font-size:var(--font-size-sm); color:var(--text-secondary); padding-left:var(--space-md); line-height:1.8; margin:0;">
+                            <li>Corrected GUID fix note from last patch in update history.</li>
+                            <li>Line numbers added to transcription rows in the transcribe module to identify linked audio file positions.</li>
+                            <li>Added audio file verification when opening a sheet — missing files are detected and a prompt is shown to locate and re-link them from a new folder.</li>
+                            <li>Applied security patches addressing vulnerabilities.</li>
+                            <li>Upgraded electron-builder to v26.15.3.</li>
+                        </ul>
+                    </div>
+
+                    <div style="margin-bottom:var(--space-lg);">
                         <p style="font-size:var(--font-size-sm); font-weight:700; color:var(--text-primary); margin-bottom:4px;">v1.1.0</p>
                         <ul style="font-size:var(--font-size-sm); color:var(--text-secondary); padding-left:var(--space-md); line-height:1.8; margin:0;">
-                            <li>Fixed the versioning for the app listings in operating systems so it should avoid duplicate entries on the app listings when installing updates.</li>
+                            <li>Fixed the GUID to allow updates of the app to update old listings as new version in operating systems to avoid old version entries on the app listings after installing updates.</li>
                             <li>Added a full version by version patch notes section within the app.</li>
                             <li>Revised the About splash screen description.</li>
                             <li>Changed the about button to a drop down menu to include update, version history and update selections.</li>
