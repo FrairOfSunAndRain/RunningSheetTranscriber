@@ -681,7 +681,7 @@ const App = (() => {
                             <li>Corrected GUID fix note from last patch in update history.</li>
                             <li>Line numbers added to transcription rows in the transcribe module to identify linked audio file positions.</li>
                             <li>Added audio file verification when opening a sheet — missing files are detected and a prompt is shown to locate and re-link them from a new folder.</li>
-                            <li>Applied security patches addressing vulnerabilities.</li>
+                            <li>General security and functionality fixes.</li>
                             <li>Upgraded electron-builder to v26.15.3.</li>
                         </ul>
                     </div>
