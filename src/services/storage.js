@@ -40,7 +40,7 @@ const Storage = (() => {
      * Get the path to a running sheet's directory
      */
     function getSheetDir(sheetId) {
-        return `${rootDir}\\${sheetId}`;
+        return `${rootDir}/${sheetId}`;
     }
 
     /**
@@ -71,10 +71,10 @@ const Storage = (() => {
             createdAt: new Date().toISOString(),
         };
 
-        await window.api.fs.writeFile(`${sheetDir}\\metadata.json`, JSON.stringify(fullMetadata, null, 2));
-        await window.api.fs.writeFile(`${sheetDir}\\audio_references.json`, JSON.stringify([]));
-        await window.api.fs.writeFile(`${sheetDir}\\entries.json`, JSON.stringify([]));
-        await window.api.fs.writeFile(`${sheetDir}\\tags.json`, JSON.stringify([]));
+        await window.api.fs.writeFile(`${sheetDir}/metadata.json`, JSON.stringify(fullMetadata, null, 2));
+        await window.api.fs.writeFile(`${sheetDir}/audio_references.json`, JSON.stringify([]));
+        await window.api.fs.writeFile(`${sheetDir}/entries.json`, JSON.stringify([]));
+        await window.api.fs.writeFile(`${sheetDir}/tags.json`, JSON.stringify([]));
 
         return fullMetadata;
     }
@@ -94,7 +94,7 @@ const Storage = (() => {
         for (const entry of entries) {
             if (!entry.isDirectory) continue;
 
-            const metaPath = `${entry.path}\\metadata.json`;
+            const metaPath = `${entry.path}/metadata.json`;
             const metaExists = await window.api.fs.exists(metaPath);
             if (!metaExists) continue;
 
@@ -103,7 +103,7 @@ const Storage = (() => {
                 const metadata = JSON.parse(metaRaw);
 
                 // Count audio files
-                const audioPath = `${entry.path}\\audio_references.json`;
+                const audioPath = `${entry.path}/audio_references.json`;
                 let audioCount = 0;
                 const audioExists = await window.api.fs.exists(audioPath);
                 if (audioExists) {
@@ -113,7 +113,7 @@ const Storage = (() => {
                 }
 
                 // Count entries
-                const entriesPath = `${entry.path}\\entries.json`;
+                const entriesPath = `${entry.path}/entries.json`;
                 let entriesCount = 0;
                 const entriesExists = await window.api.fs.exists(entriesPath);
                 if (entriesExists) {
@@ -148,10 +148,10 @@ const Storage = (() => {
     async function openRunningSheet(sheetId) {
         const sheetDir = getSheetDir(sheetId);
 
-        const metaRaw = await window.api.fs.readFile(`${sheetDir}\\metadata.json`);
-        const audioRaw = await window.api.fs.readFile(`${sheetDir}\\audio_references.json`);
-        const entriesRaw = await window.api.fs.readFile(`${sheetDir}\\entries.json`);
-        const tagsRaw = await window.api.fs.readFile(`${sheetDir}\\tags.json`);
+        const metaRaw = await window.api.fs.readFile(`${sheetDir}/metadata.json`);
+        const audioRaw = await window.api.fs.readFile(`${sheetDir}/audio_references.json`);
+        const entriesRaw = await window.api.fs.readFile(`${sheetDir}/entries.json`);
+        const tagsRaw = await window.api.fs.readFile(`${sheetDir}/tags.json`);
 
         return {
             metadata: JSON.parse(metaRaw),
@@ -174,7 +174,7 @@ const Storage = (() => {
      */
     async function saveMetadata(sheetId, metadata) {
         const sheetDir = getSheetDir(sheetId);
-        await window.api.fs.writeFile(`${sheetDir}\\metadata.json`, JSON.stringify(metadata, null, 2));
+        await window.api.fs.writeFile(`${sheetDir}/metadata.json`, JSON.stringify(metadata, null, 2));
     }
 
     /**
@@ -182,7 +182,7 @@ const Storage = (() => {
      */
     async function saveAudioReferences(sheetId, audioFiles) {
         const sheetDir = getSheetDir(sheetId);
-        await window.api.fs.writeFile(`${sheetDir}\\audio_references.json`, JSON.stringify(audioFiles, null, 2));
+        await window.api.fs.writeFile(`${sheetDir}/audio_references.json`, JSON.stringify(audioFiles, null, 2));
     }
 
     /**
@@ -190,7 +190,7 @@ const Storage = (() => {
      */
     async function saveEntries(sheetId, entries) {
         const sheetDir = getSheetDir(sheetId);
-        await window.api.fs.writeFile(`${sheetDir}\\entries.json`, JSON.stringify(entries, null, 2));
+        await window.api.fs.writeFile(`${sheetDir}/entries.json`, JSON.stringify(entries, null, 2));
     }
 
     /**
@@ -198,7 +198,7 @@ const Storage = (() => {
      */
     async function saveTags(sheetId, tags) {
         const sheetDir = getSheetDir(sheetId);
-        await window.api.fs.writeFile(`${sheetDir}\\tags.json`, JSON.stringify(tags, null, 2));
+        await window.api.fs.writeFile(`${sheetDir}/tags.json`, JSON.stringify(tags, null, 2));
     }
 
     /**
@@ -206,7 +206,7 @@ const Storage = (() => {
      */
     async function updateEntry(sheetId, entryId, field, value) {
         const sheetDir = getSheetDir(sheetId);
-        const entriesRaw = await window.api.fs.readFile(`${sheetDir}\\entries.json`);
+        const entriesRaw = await window.api.fs.readFile(`${sheetDir}/entries.json`);
         const entries = JSON.parse(entriesRaw);
 
         const entry = entries.find(e => e.id === entryId);
@@ -223,10 +223,10 @@ const Storage = (() => {
      */
     async function markComplete(sheetId) {
         const sheetDir = getSheetDir(sheetId);
-        const metaRaw = await window.api.fs.readFile(`${sheetDir}\\metadata.json`);
+        const metaRaw = await window.api.fs.readFile(`${sheetDir}/metadata.json`);
         const metadata = JSON.parse(metaRaw);
         metadata.completedAt = new Date().toISOString();
-        await window.api.fs.writeFile(`${sheetDir}\\metadata.json`, JSON.stringify(metadata, null, 2));
+        await window.api.fs.writeFile(`${sheetDir}/metadata.json`, JSON.stringify(metadata, null, 2));
     }
 
     /**
@@ -234,10 +234,10 @@ const Storage = (() => {
      */
     async function removeComplete(sheetId) {
         const sheetDir = getSheetDir(sheetId);
-        const metaRaw = await window.api.fs.readFile(`${sheetDir}\\metadata.json`);
+        const metaRaw = await window.api.fs.readFile(`${sheetDir}/metadata.json`);
         const metadata = JSON.parse(metaRaw);
         delete metadata.completedAt;
-        await window.api.fs.writeFile(`${sheetDir}\\metadata.json`, JSON.stringify(metadata, null, 2));
+        await window.api.fs.writeFile(`${sheetDir}/metadata.json`, JSON.stringify(metadata, null, 2));
     }
 
     /**
