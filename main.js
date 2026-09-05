@@ -314,19 +314,26 @@ ipcMain.handle('app:getUserDataPath', () => {
 const unsupportedFormats = ['.wma'];
 const convertedCache = {}; // cache: originalPath → convertedPath
 
+// Build a valid file:// URL from an absolute path on any platform.
+// Windows paths (e.g. E:/x.mp3) lack a leading slash; POSIX paths (e.g. /home/x.mp3) already have one —
+// always ensure exactly one leading slash before the 'file://' prefix to avoid a malformed 'file:////' URL on Linux/macOS.
+function toFileUrl(filePath) {
+    let normalizedPath = filePath.replace(/\\/g, '/');
+    if (!normalizedPath.startsWith('/')) normalizedPath = '/' + normalizedPath;
+    return 'file://' + encodeURI(normalizedPath);
+}
+
 ipcMain.handle('audio:getPlayableUrl', async (event, filePath) => {
     const ext = path.extname(filePath).toLowerCase();
 
     // If already a supported format, return file:// URL directly
     if (!unsupportedFormats.includes(ext)) {
-        const normalizedPath = filePath.replace(/\\/g, '/');
-        return 'file:///' + encodeURI(normalizedPath);
+        return toFileUrl(filePath);
     }
 
     // Check cache
     if (convertedCache[filePath] && fs.existsSync(convertedCache[filePath])) {
-        const cachedPath = convertedCache[filePath].replace(/\\/g, '/');
-        return 'file:///' + encodeURI(cachedPath);
+        return toFileUrl(convertedCache[filePath]);
     }
 
     // Convert to WAV using ffmpeg
@@ -350,13 +357,11 @@ ipcMain.handle('audio:getPlayableUrl', async (event, filePath) => {
             if (error) {
                 console.error('ffmpeg conversion error:', error.message);
                 // Fallback: return original file URL anyway
-                const normalizedPath = filePath.replace(/\\/g, '/');
-                resolve('file:///' + encodeURI(normalizedPath));
+                resolve(toFileUrl(filePath));
             } else {
                 console.log('Converted:', filePath, '->', outPath);
                 convertedCache[filePath] = outPath;
-                const normalizedPath = outPath.replace(/\\/g, '/');
-                resolve('file:///' + encodeURI(normalizedPath));
+                resolve(toFileUrl(outPath));
             }
         });
     });

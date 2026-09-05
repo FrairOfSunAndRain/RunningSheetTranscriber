@@ -59,6 +59,16 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
 
+      # Lets us grab a test build from a manual (workflow_dispatch) run without cutting a tagged release
+      - name: Upload build artifacts (manual runs)
+        uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: linux-installers
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
