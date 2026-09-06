@@ -4,6 +4,9 @@ const fs = require('fs');
 const { execFile } = require('child_process');
 const ffmpegPath = require('ffmpeg-static');
 
+// Avoid GPU-driver related freezes ("Not Responding") on low-spec/VM Linux hardware without solid 3D acceleration
+app.disableHardwareAcceleration();
+
 let mainWindow;
 
 // Settings file path
