@@ -64,6 +64,23 @@ function createWindow() {
         mainWindow.maximize();
     });
 
+    // Forward renderer console output and hang/recovery events to the terminal for debugging
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+        console.log(`[renderer] ${message} (${sourceId}:${line})`);
+    });
+    mainWindow.webContents.on('unresponsive', () => {
+        console.error('[main] webContents became UNRESPONSIVE');
+    });
+    mainWindow.webContents.on('responsive', () => {
+        console.log('[main] webContents became responsive again');
+    });
+    mainWindow.webContents.on('render-process-gone', (event, details) => {
+        console.error('[main] render-process-gone:', details);
+    });
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+        console.error('[main] did-fail-load:', errorCode, errorDescription);
+    });
+
     // Right-click context menu with spell-check suggestions
     mainWindow.webContents.on('context-menu', (event, params) => {
         const menu = new Menu();
