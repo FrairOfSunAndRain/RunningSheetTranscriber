@@ -6,6 +6,11 @@ const ffmpegPath = require('ffmpeg-static');
 
 // Avoid GPU-driver related freezes ("Not Responding") on low-spec/VM Linux hardware without solid 3D acceleration
 app.disableHardwareAcceleration();
+// disableHardwareAcceleration() alone still spawns a GPU process for software compositing (Viz) — some low-resource
+// Linux systems hang during that startup. Force Chromium to skip the GPU process entirely.
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('disable-software-rasterizer');
 
 let mainWindow;
 
